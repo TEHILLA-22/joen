@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth required models
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Your app models
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  
+  // ✅ FIXED: Only ONE role field using UserRole enum
+  role          UserRole  @default(CUSTOMER)
+  
+  // ✅ FIXED: Company relationship
+  companyId     String?
+  company       Company?  @relation(fields: [companyId], references: [id])
+  
+  // ✅ FIXED: Remove extra createdAt (NextAuth handles timestamps)
+  accounts      Account[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+model Company {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  description  String?
+  logo         String?
+  website      String?
+  
+  plan         PlanType  @default(FREE)
+  isActive     Boolean   @default(false)
+  subscribedAt DateTime?
+  expiresAt    DateTime?
+  
+  users        User[]
+  products     Product[]
+  orders       Order[]
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  @@map("companies")
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  description  String?
+  
+  // Pricing
+  basePrice    Decimal  @db.Decimal(10, 2)
+  bulkPrice    Decimal? @db.Decimal(10, 2)
+  bulkThreshold Int?
+  
+  // Inventory
+  sku          String?  @unique
+  inStock      Boolean  @default(true)
+  stockCount   Int      @default(0)
+  images       String[]
+  
+   category     String?
+
+  // Company relationship
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+  
+  // Orders containing this product
+  orderItems   OrderItem[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([companyId, slug])
+  
+  @@map("products")
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  orderNumber    String      @unique
+  status         OrderStatus @default(PENDING)
+  
+  // Customer info
+  customerName   String
+  customerEmail  String
+  customerCompany String?
+  
+  // Addresses
+  shippingAddress Json
+  billingAddress  Json?
+  
+  // Financials
+  subtotal       Decimal  @db.Decimal(10, 2)
+  tax            Decimal  @db.Decimal(10, 2)
+  total          Decimal  @db.Decimal(10, 2)
+  
+  // Company relationship
+  companyId      String
+  company        Company  @relation(fields: [companyId], references: [id])
+  
+  // Order items
+  items          OrderItem[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(10, 2)
+  total     Decimal  @db.Decimal(10, 2)
+  
+  @@map("order_items")
+}
+
+// Enums
+enum PlanType {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  MANAGER
+  STAFF
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  COMPLETED  
+}
