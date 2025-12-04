@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { 
   LayoutDashboard, 
@@ -15,12 +15,6 @@ import {
   X
 } from 'lucide-react';
 
-
-
-
-
-
-
 export default function DashboardLayout({
   children,
 }: {
@@ -28,21 +22,6 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [companyInfo, setCompanyInfo] = useState(null);
-
-
-  useEffect(() => {
-    // Fetch company info on mount
-    async function loadCompanyInfo() {
-      // TODO: Replace with actual API call
-      setCompanyInfo({
-        name: 'Tech Supplies Inc',
-        plan: 'BASIC',
-        isActive: true
-      });
-    }
-    loadCompanyInfo();
-  }, []);
 
   const navItems = [
     { name: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
