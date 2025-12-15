@@ -3,9 +3,16 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles, Globe, Shield, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
+type Star = {
+  left: number
+  top: number
+  duration: number
+  delay: number
+}
+
 
 export function AnimatedHero() {
-  const [stars, setStars] = useState([]);
+  const [stars, setStars] = useState<Star[]>([]);
 
   // Generate stars only on the client
   useEffect(() => {
